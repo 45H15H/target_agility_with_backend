@@ -15,6 +15,10 @@ from sqlalchemy.orm import Session
 
 import os
 
+if os.getenv("RUN_SEED") == "true":
+    import seed
+    seed.seed()
+
 from database import Base, engine, get_db
 from security import BasicAuthMiddleware
 from models import (
