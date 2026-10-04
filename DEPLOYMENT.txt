@@ -1,0 +1,205 @@
+===========================================================================
+ DEPLOYING DIGITALDIMNA ON RENDER (with PostgreSQL)
+===========================================================================
+
+This guide walks you through deploying the full project on Render:
+  - A PostgreSQL database
+  - The FastAPI backend (API + admin dashboard)
+  - The React frontend (static site)
+
+You will create THREE Render resources in this order:
+  1. PostgreSQL database
+  2. Backend Web Service
+  3. Frontend Static Site
+
+
+---------------------------------------------------------------------------
+ STEP 0 — PREREQUISITES
+---------------------------------------------------------------------------
+- Push this project to a GitHub (or GitLab) repository.
+- Create a free account at https://render.com and connect your Git provider.
+
+
+---------------------------------------------------------------------------
+ STEP 1 — CREATE THE POSTGRESQL DATABASE
+---------------------------------------------------------------------------
+1. In the Render dashboard, click: New +  ->  Postgres
+2. Give it a name (e.g. "digitaldimna-db").
+3. Choose a region (remember it — put the backend in the SAME region).
+4. Select a plan (the Free plan is fine to start).
+5. Click "Create Database".
+6. Once created, open the database page and copy the value labelled:
+       "Internal Database URL"
+   (Use the INTERNAL URL when the backend is hosted on Render — it is
+    faster and free of egress charges. It looks like:
+       postgresql://user:password@host/dbname )
+
+   NOTE: Render provides URLs that may begin with "postgres://".
+   The backend already converts "postgres://" to "postgresql://"
+   automatically, so either form works.
+
+
+---------------------------------------------------------------------------
+ STEP 2 — DEPLOY THE BACKEND (FastAPI Web Service)
+---------------------------------------------------------------------------
+1. Click: New +  ->  Web Service
+2. Select your repository.
+3. Configure the service:
+
+     Name:             digitaldimna-api
+     Region:           SAME region as the database
+     Branch:           main (or your deploy branch)
+     Root Directory:   backend
+     Runtime:          Python 3
+     Build Command:    pip install -r requirements.txt
+     Start Command:    uvicorn main:app --host 0.0.0.0 --port $PORT
+
+   IMPORTANT: Render provides the port via the $PORT variable.
+   You MUST use --host 0.0.0.0 --port $PORT (not 127.0.0.1:8000).
+
+4. Add Environment Variables (Environment tab):
+
+     DATABASE_URL     = <Internal Database URL from Step 1>
+     ADMIN_USERNAME   = <choose a strong admin username>
+     ADMIN_PASSWORD   = <choose a strong admin password>
+     ALLOWED_ORIGINS  = <your frontend URL(s)>   (see Step 3 below)
+
+   You can leave ALLOWED_ORIGINS empty for now and fill it in after the
+   frontend is deployed (Step 3). When empty, only local dev origins are
+   allowed, so the live website won't be able to load data until it is set.
+
+5. Click "Create Web Service" and wait for the first deploy to finish.
+   Your backend will be available at:
+       https://digitaldimna-api.onrender.com
+
+6. SEED THE DATABASE (one time only):
+   The tables are created automatically on startup, but they start empty.
+   To load the initial content, open the backend service in Render and use
+   the "Shell" tab, then run:
+
+       python seed.py
+
+   (The seed script is safe — it only fills tables that are empty.)
+
+7. Verify:
+       https://digitaldimna-api.onrender.com/api/courses   -> returns JSON
+       https://digitaldimna-api.onrender.com/admin         -> asks for login
+       https://digitaldimna-api.onrender.com/docs          -> asks for login
+
+
+---------------------------------------------------------------------------
+ STEP 3 — ALLOW THE FRONTEND (CORS)  *** DON'T SKIP THIS ***
+---------------------------------------------------------------------------
+The backend only allows specific website origins to call the API. Before
+the live website can fetch data, its domain must be allowed.
+
+This is controlled by the ALLOWED_ORIGINS environment variable on the
+backend Web Service — NO code changes required. Set it to a comma-separated
+list of your frontend URL(s):
+
+   On the backend service:  Environment tab  ->  add / edit:
+
+     ALLOWED_ORIGINS = https://digitaldimna-frontend.onrender.com,https://www.yourdomain.com
+
+Notes:
+   - Separate multiple URLs with commas. Spaces around commas are fine.
+   - Use the EXACT origin: scheme + domain, no trailing slash, no path.
+       Good:  https://www.yourdomain.com
+       Bad:   https://www.yourdomain.com/   (trailing slash)
+       Bad:   www.yourdomain.com            (missing https://)
+   - If ALLOWED_ORIGINS is left empty, the backend falls back to local
+     development origins only (localhost), so production fetches will fail.
+   - After changing this variable, Render restarts the backend automatically.
+
+(You can deploy the frontend first (Step 4) to learn its exact URL, then
+ come back and set ALLOWED_ORIGINS.)
+
+
+---------------------------------------------------------------------------
+ STEP 4 — DEPLOY THE FRONTEND (Static Site)
+---------------------------------------------------------------------------
+1. Click: New +  ->  Static Site
+2. Select the same repository.
+3. Configure:
+
+     Name:              digitaldimna-frontend
+     Root Directory:    (leave blank — project root)
+     Build Command:     npm install && npm run build
+     Publish Directory: dist
+
+4. Add an Environment Variable:
+
+     VITE_API_URL = https://digitaldimna-api.onrender.com/api
+
+   (This points the website at your live backend. Note the "/api" suffix.)
+
+5. Add a rewrite rule so client-side routing works (Redirects/Rewrites tab):
+
+     Source:       /*
+     Destination:  /index.html
+     Action:       Rewrite
+
+   Without this, refreshing a page like /blog or /courses/psm-1 will 404.
+
+6. Click "Create Static Site" and wait for the build.
+   Your website will be live at:
+       https://digitaldimna-frontend.onrender.com
+
+7. Go back to STEP 3 and make sure this exact URL is set in the backend's
+   ALLOWED_ORIGINS variable, then let the backend restart.
+
+
+---------------------------------------------------------------------------
+ THINGS TO KEEP IN MIND
+---------------------------------------------------------------------------
+- CORS is the #1 cause of "fails to load data" in production. If the site
+  shows empty content, open the browser console — a CORS error means the
+  frontend URL is missing from ALLOWED_ORIGINS on the backend service.
+  Fix it by updating that env var (no code change or redeploy of code
+  needed — just set the variable and the backend restarts).
+
+- VITE_API_URL is baked in at BUILD time, not run time. If you change it,
+  you must trigger a new frontend build/deploy for it to take effect.
+
+- Use the INTERNAL database URL for the backend (same region). The EXTERNAL
+  URL is only for connecting from your own computer.
+
+- Set strong ADMIN_USERNAME / ADMIN_PASSWORD. The code defaults
+  (admin / change-me) are for local development only — never rely on them
+  in production.
+
+- Free plan "cold starts": Render free web services sleep after inactivity.
+  The first request after sleeping can take ~30-60 seconds to wake up.
+  Upgrade to a paid instance to avoid this.
+
+- Free Postgres has limits and may expire after a period. For a real client
+  handover, use a paid database plan and enable backups.
+
+- Run "python seed.py" only ONCE after the first deploy. Re-running is
+  harmless (it skips non-empty tables), but it will not overwrite or update
+  existing content.
+
+- HTTPS is automatic on Render. Keep all URLs https:// in production
+  (mixing http and https will cause the browser to block requests).
+
+- Keep secrets out of Git. DATABASE_URL, ADMIN_USERNAME, and ADMIN_PASSWORD
+  must be set as Render environment variables, never committed to the repo.
+
+- Custom domain: you can attach your own domain to the Static Site in
+  Render's "Settings -> Custom Domains". Remember to also add that domain
+  to the backend's ALLOWED_ORIGINS variable.
+
+
+---------------------------------------------------------------------------
+ QUICK REFERENCE — ENVIRONMENT VARIABLES
+---------------------------------------------------------------------------
+ BACKEND (Web Service):
+     DATABASE_URL      = postgresql://...        (Internal URL from Render)
+     ADMIN_USERNAME    = your-admin-user
+     ADMIN_PASSWORD    = your-strong-password
+     ALLOWED_ORIGINS   = https://<frontend>.onrender.com,https://www.yourdomain.com
+
+ FRONTEND (Static Site):
+     VITE_API_URL      = https://<backend>.onrender.com/api
+
+===========================================================================

@@ -1,10 +1,46 @@
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, HelpCircle, ArrowRight, BrainCircuit } from "lucide-react";
-import { quizzes } from "@/data/quizzes";
+import {
+  Clock,
+  HelpCircle,
+  ArrowRight,
+  BrainCircuit,
+  ClipboardCheck,
+  Award,
+  Target,
+  BarChart3,
+  Shield,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import { useFetch } from "@/hooks/useFetch";
+import { LoadingState, ErrorState } from "@/components/FetchState";
+
+interface ApiQuiz {
+  id: string;
+  title: string;
+  shortTitle: string;
+  description: string;
+  questionCount: number;
+  duration: string;
+  icon: string;
+  link: string;
+}
+
+// Maps the icon name stored in the database to its Lucide component.
+const iconMap: Record<string, LucideIcon> = {
+  ClipboardCheck,
+  Award,
+  Target,
+  BarChart3,
+  Shield,
+  Users,
+};
 
 const Quizzes = () => {
+  const { data: quizzes, loading, error } = useFetch<ApiQuiz[]>("quizzes");
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -21,8 +57,9 @@ const Quizzes = () => {
             Test Your Agile Knowledge
           </h1>
           <p className="text-primary-foreground/80 text-lg max-w-2xl mx-auto">
-            Take our free practice assessments to evaluate your preparedness for industry-standard
-            Scrum and Agile certifications. Timed, realistic, and completely free.
+            Take our free practice assessments to evaluate your preparedness for
+            industry-standard Scrum and Agile certifications. Timed, realistic,
+            and completely free.
           </p>
         </div>
       </section>
@@ -39,49 +76,59 @@ const Quizzes = () => {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {quizzes.map((quiz) => {
-            const Icon = quiz.icon;
-            return (
-              <div
-                key={quiz.id}
-                className="bg-card rounded-2xl border border-border p-6 flex flex-col hover:shadow-lg hover:border-primary/30 hover:-translate-y-1 transition-all group"
-              >
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                    <Icon className="h-7 w-7 text-primary" />
+          {loading ? (
+            <div className="col-span-full">
+              <LoadingState label="Loading assessments…" />
+            </div>
+          ) : error ? (
+            <div className="col-span-full">
+              <ErrorState message="We couldn't load the assessments right now. Please try again later." />
+            </div>
+          ) : (
+            (quizzes ?? []).map((quiz) => {
+              const Icon = iconMap[quiz.icon] ?? ClipboardCheck;
+              return (
+                <div
+                  key={quiz.id}
+                  className="bg-card rounded-2xl border border-border p-6 flex flex-col hover:shadow-lg hover:border-primary/30 hover:-translate-y-1 transition-all group"
+                >
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                      <Icon className="h-7 w-7 text-primary" />
+                    </div>
+                    <Badge variant="secondary" className="font-heading text-xs">
+                      {quiz.shortTitle}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="font-heading text-xs">
-                    {quiz.shortTitle}
-                  </Badge>
+
+                  <h3 className="font-heading font-bold text-lg text-foreground mb-2 leading-snug">
+                    {quiz.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-5 flex-1">
+                    {quiz.description}
+                  </p>
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-5">
+                    <span className="flex items-center gap-1.5">
+                      <HelpCircle className="h-4 w-4 text-primary" />
+                      {quiz.questionCount} Questions
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-primary" />
+                      {quiz.duration}
+                    </span>
+                  </div>
+
+                  <a href={quiz.link}>
+                    <Button className="w-full rounded-xl font-heading group/btn">
+                      Start Assessment
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </Button>
+                  </a>
                 </div>
-
-                <h3 className="font-heading font-bold text-lg text-foreground mb-2 leading-snug">
-                  {quiz.title}
-                </h3>
-                <p className="text-muted-foreground text-sm mb-5 flex-1">
-                  {quiz.description}
-                </p>
-
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-5">
-                  <span className="flex items-center gap-1.5">
-                    <HelpCircle className="h-4 w-4 text-primary" />
-                    {quiz.questionCount} Questions
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-primary" />
-                    {quiz.duration}
-                  </span>
-                </div>
-
-                <a href={quiz.link}>
-                  <Button className="w-full rounded-xl font-heading group/btn">
-                    Start Assessment
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                  </Button>
-                </a>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </section>
 
@@ -95,10 +142,14 @@ const Quizzes = () => {
             Want to Learn Before You Assess?
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-            Explore our certification courses to build a strong foundation before taking the practice exams.
+            Explore our certification courses to build a strong foundation
+            before taking the practice exams.
           </p>
           <a href="/#courses">
-            <Button variant="outline" className="rounded-xl font-heading border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+            <Button
+              variant="outline"
+              className="rounded-xl font-heading border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
               Browse Courses
             </Button>
           </a>

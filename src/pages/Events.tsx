@@ -2,16 +2,19 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, MapPin, Play, ArrowRight } from "lucide-react";
-import { eventsData, type EventItem } from "@/data/events";
+import type { EventItem } from "@/data/events";
+import { useFetch } from "@/hooks/useFetch";
+import { LoadingState, ErrorState } from "@/components/FetchState";
 
 const Events = () => {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const { data: events, loading, error } = useFetch<EventItem[]>("events");
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const filteredEvents = eventsData.filter((e) => e.type === activeTab);
+  const filteredEvents = (events ?? []).filter((e) => e.type === activeTab);
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,7 +25,8 @@ const Events = () => {
             Events & Webinars
           </h1>
           <p className="text-primary-foreground/80 text-lg max-w-2xl mx-auto">
-            Join our live workshops and webinars led by industry experts. Learn, interact, and level up your agile skills.
+            Join our live workshops and webinars led by industry experts. Learn,
+            interact, and level up your agile skills.
           </p>
         </div>
       </section>
@@ -55,7 +59,11 @@ const Events = () => {
         </div>
 
         {/* Events Grid */}
-        {filteredEvents.length === 0 ? (
+        {loading ? (
+          <LoadingState label="Loading events…" />
+        ) : error ? (
+          <ErrorState message="We couldn't load events right now. Please try again later." />
+        ) : filteredEvents.length === 0 ? (
           <div className="text-center py-16">
             <CalendarDays className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
             <h3 className="font-heading font-semibold text-xl text-foreground mb-2">
@@ -83,7 +91,8 @@ const Events = () => {
             Never Miss an Event
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-            Subscribe to get notified about upcoming webinars, workshops, and community events.
+            Subscribe to get notified about upcoming webinars, workshops, and
+            community events.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <input
@@ -91,9 +100,7 @@ const Events = () => {
               placeholder="Enter your email"
               className="flex-1 px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-heading text-sm"
             />
-            <Button className="rounded-xl px-6 font-heading">
-              Subscribe
-            </Button>
+            <Button className="rounded-xl px-6 font-heading">Subscribe</Button>
           </div>
         </div>
       </section>
@@ -111,7 +118,10 @@ const EventCard = ({ event }: { event: EventItem }) => (
       />
       <div className="absolute top-3 left-3 flex gap-2">
         {event.tags.map((tag) => (
-          <Badge key={tag} className="bg-primary/90 text-primary-foreground text-xs font-heading">
+          <Badge
+            key={tag}
+            className="bg-primary/90 text-primary-foreground text-xs font-heading"
+          >
             {tag}
           </Badge>
         ))}
@@ -150,7 +160,10 @@ const EventCard = ({ event }: { event: EventItem }) => (
         </a>
       ) : (
         <a href={event.recordingLink || "#"}>
-          <Button variant="outline" className="w-full rounded-xl font-heading border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+          <Button
+            variant="outline"
+            className="w-full rounded-xl font-heading border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+          >
             <Play className="mr-2 h-4 w-4" />
             Watch Recording
           </Button>

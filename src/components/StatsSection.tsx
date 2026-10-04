@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { statsData } from "../data/statsData";
+import { useFetch } from "@/hooks/useFetch";
 
-const AnimatedCounter = ({ target, suffix }: { target: number; suffix: string }) => {
+interface Stat {
+  id: number;
+  value: number;
+  suffix: string;
+  label: string;
+}
+
+const AnimatedCounter = ({
+  target,
+  suffix,
+}: {
+  target: number;
+  suffix: string;
+}) => {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
@@ -26,32 +39,42 @@ const AnimatedCounter = ({ target, suffix }: { target: number; suffix: string })
           }, duration / steps);
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.3 },
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, [target]);
 
   return (
-    <div ref={ref} className="text-secondary font-heading font-bold text-4xl md:text-5xl">
-      {count}{suffix}
+    <div
+      ref={ref}
+      className="text-secondary font-heading font-bold text-4xl md:text-5xl"
+    >
+      {count}
+      {suffix}
     </div>
   );
 };
 
-const StatsSection = () => (
-  <section className="bg-primary py-16">
-    <div className="container mx-auto px-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-        {statsData.map((stat) => (
-          <div key={stat.label} className="text-center">
-            <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-            <p className="text-primary-foreground mt-2 font-body text-sm">{stat.label}</p>
-          </div>
-        ))}
+const StatsSection = () => {
+  const { data: stats } = useFetch<Stat[]>("stats");
+
+  return (
+    <section className="bg-primary py-16">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {(stats ?? []).map((stat) => (
+            <div key={stat.label} className="text-center">
+              <AnimatedCounter target={stat.value} suffix={stat.suffix} />
+              <p className="text-primary-foreground mt-2 font-body text-sm">
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default StatsSection;
