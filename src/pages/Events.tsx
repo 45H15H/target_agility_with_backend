@@ -5,6 +5,13 @@ import { CalendarDays, Clock, MapPin, Play, ArrowRight } from "lucide-react";
 import type { EventItem } from "@/data/events";
 import { useFetch } from "@/hooks/useFetch";
 import { LoadingState, ErrorState } from "@/components/FetchState";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const Events = () => {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
@@ -74,6 +81,23 @@ const Events = () => {
                 ? "Stay tuned — new events are being planned!"
                 : "No past events to show yet."}
             </p>
+          </div>
+        ) : filteredEvents.length > 3 ? (
+          <div className="relative px-12">
+            <Carousel opts={{ align: "start" }} className="w-full">
+              <CarouselContent className="-ml-4">
+                {filteredEvents.map((event) => (
+                  <CarouselItem
+                    key={event.id}
+                    className="pl-4 md:basis-1/2 lg:basis-1/3"
+                  >
+                    <EventCard event={event} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

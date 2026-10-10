@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, ChevronDown } from "lucide-react";
-import { courses } from "@/data/courses";
 import { navItems, resourceItems } from "@/data/navbarData";
+import { useFetch } from "@/hooks/useFetch";
+
+interface NavCourse {
+  id: string;
+  title: string;
+  shortTitle: string;
+}
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,6 +16,8 @@ const Navbar = () => {
   const [showResources, setShowResources] = useState(false);
   const [mobileCoursesOpen, setMobileCoursesOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
+  const { data } = useFetch<NavCourse[]>("courses");
+  const courses = data ?? [];
 
   return (
     <nav className="bg-card shadow-sm sticky top-0 z-50">
@@ -30,13 +38,17 @@ const Navbar = () => {
                 >
                   <button className="flex items-center gap-1 font-heading font-medium text-sm text-foreground hover:text-secondary transition-colors">
                     {item.label}
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showCourses ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${showCourses ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   {showCourses && (
                     <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[800px]">
                       <div className="bg-card rounded-xl shadow-2xl border border-border p-6">
-                        <h3 className="font-heading font-bold text-lg text-foreground mb-5 text-center">Our Courses</h3>
+                        <h3 className="font-heading font-bold text-lg text-foreground mb-5 text-center">
+                          Our Courses
+                        </h3>
                         <div className="grid grid-cols-3 gap-x-6 gap-y-4">
                           {courses.map((course) => (
                             <Link
@@ -46,7 +58,9 @@ const Navbar = () => {
                               onClick={() => setShowCourses(false)}
                             >
                               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                <span className="font-heading font-bold text-xs text-primary leading-tight text-center">{course.shortTitle}</span>
+                                <span className="font-heading font-bold text-xs text-primary leading-tight text-center">
+                                  {course.shortTitle}
+                                </span>
                               </div>
                               <span className="font-heading font-medium text-sm text-foreground group-hover:text-secondary transition-colors leading-snug">
                                 {course.title}
@@ -71,13 +85,17 @@ const Navbar = () => {
                 >
                   <button className="flex items-center gap-1 font-heading font-medium text-sm text-foreground hover:text-secondary transition-colors">
                     {item.label}
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showResources ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${showResources ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   {showResources && (
                     <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[500px]">
                       <div className="bg-card rounded-xl shadow-2xl border border-border p-6">
-                        <h3 className="font-heading font-bold text-lg text-foreground mb-5 text-center">Resources</h3>
+                        <h3 className="font-heading font-bold text-lg text-foreground mb-5 text-center">
+                          Resources
+                        </h3>
                         <div className="grid grid-cols-1 gap-3">
                           {resourceItems.map((res) => {
                             const Icon = res.icon;
@@ -90,17 +108,30 @@ const Navbar = () => {
                                   <span className="font-heading font-medium text-sm text-foreground group-hover:text-secondary transition-colors block">
                                     {res.label}
                                   </span>
-                                  <span className="text-xs text-muted-foreground leading-snug">{res.description}</span>
+                                  <span className="text-xs text-muted-foreground leading-snug">
+                                    {res.description}
+                                  </span>
                                 </div>
                               </>
                             );
-                            const className = "flex items-center gap-4 p-3 rounded-lg hover:bg-muted border border-transparent hover:border-border transition-all group";
+                            const className =
+                              "flex items-center gap-4 p-3 rounded-lg hover:bg-muted border border-transparent hover:border-border transition-all group";
                             return res.to.startsWith("/") ? (
-                              <Link key={res.label} to={res.to} className={className} onClick={() => setShowResources(false)}>
+                              <Link
+                                key={res.label}
+                                to={res.to}
+                                className={className}
+                                onClick={() => setShowResources(false)}
+                              >
                                 {content}
                               </Link>
                             ) : (
-                              <a key={res.label} href={res.to} className={className} onClick={() => setShowResources(false)}>
+                              <a
+                                key={res.label}
+                                href={res.to}
+                                className={className}
+                                onClick={() => setShowResources(false)}
+                              >
                                 {content}
                               </a>
                             );
@@ -155,7 +186,9 @@ const Navbar = () => {
                     className="w-full flex items-center justify-between py-3 font-heading font-medium text-sm text-foreground border-b border-border"
                   >
                     Courses
-                    <ChevronDown className={`h-4 w-4 transition-transform ${mobileCoursesOpen ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${mobileCoursesOpen ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {mobileCoursesOpen && (
                     <div className="pl-4 pb-2">
@@ -163,7 +196,10 @@ const Navbar = () => {
                         <Link
                           key={course.id}
                           to={`/courses/${course.id}`}
-                          onClick={() => { setIsOpen(false); setMobileCoursesOpen(false); }}
+                          onClick={() => {
+                            setIsOpen(false);
+                            setMobileCoursesOpen(false);
+                          }}
                           className="block py-2 font-heading text-sm text-muted-foreground hover:text-secondary transition-colors"
                         >
                           {course.title}
@@ -183,7 +219,9 @@ const Navbar = () => {
                     className="w-full flex items-center justify-between py-3 font-heading font-medium text-sm text-foreground border-b border-border"
                   >
                     Resources
-                    <ChevronDown className={`h-4 w-4 transition-transform ${mobileResourcesOpen ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${mobileResourcesOpen ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {mobileResourcesOpen && (
                     <div className="pl-4 pb-2">
@@ -192,7 +230,10 @@ const Navbar = () => {
                           <Link
                             key={res.label}
                             to={res.to}
-                            onClick={() => { setIsOpen(false); setMobileResourcesOpen(false); }}
+                            onClick={() => {
+                              setIsOpen(false);
+                              setMobileResourcesOpen(false);
+                            }}
                             className="block py-2 font-heading text-sm text-muted-foreground hover:text-secondary transition-colors"
                           >
                             {res.label}
@@ -201,12 +242,15 @@ const Navbar = () => {
                           <a
                             key={res.label}
                             href={res.to}
-                            onClick={() => { setIsOpen(false); setMobileResourcesOpen(false); }}
+                            onClick={() => {
+                              setIsOpen(false);
+                              setMobileResourcesOpen(false);
+                            }}
                             className="block py-2 font-heading text-sm text-muted-foreground hover:text-secondary transition-colors"
                           >
                             {res.label}
                           </a>
-                        )
+                        ),
                       )}
                     </div>
                   )}

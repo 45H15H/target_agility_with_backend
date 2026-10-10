@@ -127,7 +127,7 @@ const CourseDetail = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="font-heading font-semibold border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                className="font-heading font-semibold !bg-transparent !text-white !border-white hover:!bg-white/10"
               >
                 Download Brochure
               </Button>
